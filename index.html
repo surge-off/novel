@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RUN CHECK — 오늘 뛸 수 있을까?</title>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --border: rgba(255,255,255,0.07);
+    --text: #f0f0f8;
+    --muted: rgba(240,240,248,0.45);
+    --go: #00e87a;
+    --go-glow: rgba(0,232,122,0.25);
+    --warn: #ffb800;
+    --warn-glow: rgba(255,184,0,0.25);
+    --stop: #ff3d5a;
+    --stop-glow: rgba(255,61,90,0.25);
+    --accent: #7b7fff;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans KR', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Animated background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(123,127,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(123,127,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 24px 20px 60px;
+  }
+
+  /* Header */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 32px;
+  }
+
+  .logo {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 22px;
+    letter-spacing: 3px;
+    color: var(--text);
+  }
+  .logo span { color: var(--accent); }
+
+  .time-badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    border-radius: 6px;
+  }
+
+  /* Location */
+  .location-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 28px;
+    cursor: pointer;
+  }
+
+  .location-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent);
+    flex-shrink: 0;
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%,100% { box-shadow: 0 0 6px var(--accent); }
+    50% { box-shadow: 0 0 16px var(--accent); }
+  }
+
+  .location-text {
+    font-size: 14px;
+    color: var(--muted);
+    font-weight: 300;
+  }
+  .location-name {
+    font-size: 14px;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  /* VERDICT CARD — main hero */
+  .verdict-card {
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 36px 28px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.6s ease;
+  }
+
+  .verdict-card::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    opacity: 0.12;
+    transition: all 0.6s ease;
+  }
+
+  .verdict-card.status-go::before { background: var(--go); box-shadow: 0 0 80px var(--go); }
+  .verdict-card.status-warn::before { background: var(--warn); box-shadow: 0 0 80px var(--warn); }
+  .verdict-card.status-stop::before { background: var(--stop); box-shadow: 0 0 80px var(--stop); }
+
+  .verdict-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .verdict-main {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 52px;
+    line-height: 1;
+    letter-spacing: -1px;
+    margin-bottom: 16px;
+    transition: color 0.6s ease;
+  }
+
+  .verdict-card.status-go .verdict-main { color: var(--go); text-shadow: 0 0 40px var(--go-glow); }
+  .verdict-card.status-warn .verdict-main { color: var(--warn); text-shadow: 0 0 40px var(--warn-glow); }
+  .verdict-card.status-stop .verdict-main { color: var(--stop); text-shadow: 0 0 40px var(--stop-glow); }
+
+  .verdict-sub {
+    font-size: 15px;
+    color: var(--muted);
+    font-weight: 300;
+    line-height: 1.6;
+  }
+
+  .verdict-icon {
+    position: absolute;
+    bottom: 24px; right: 28px;
+    font-size: 56px;
+    opacity: 0.15;
+  }
+
+  /* Intensity recommendation */
+  .intensity-strip {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .intensity-icon { font-size: 28px; }
+
+  .intensity-info { flex: 1; }
+  .intensity-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+  .intensity-desc {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 300;
+  }
+
+  .mask-badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    padding: 4px 8px;
+    border-radius: 20px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .mask-no { background: rgba(0,232,122,0.12); color: var(--go); border: 1px solid rgba(0,232,122,0.3); }
+  .mask-maybe { background: rgba(255,184,0,0.12); color: var(--warn); border: 1px solid rgba(255,184,0,0.3); }
+  .mask-yes { background: rgba(255,61,90,0.12); color: var(--stop); border: 1px solid rgba(255,61,90,0.3); }
+
+  /* Metrics grid */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .metric-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .metric-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    border-radius: 0 0 14px 14px;
+    transition: background 0.6s ease;
+  }
+
+  .metric-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .metric-value {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 32px;
+    line-height: 1;
+    margin-bottom: 2px;
+  }
+
+  .metric-unit {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+
+  .metric-bar-bg {
+    height: 3px;
+    background: rgba(255,255,255,0.07);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .metric-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 1s ease, background 0.6s ease;
+  }
+
+  .metric-status {
+    font-size: 10px;
+    margin-top: 6px;
+    font-weight: 500;
+  }
+
+  /* good=go, moderate=warn, bad=stop */
+  .c-go { color: var(--go); }
+  .c-warn { color: var(--warn); }
+  .c-stop { color: var(--stop); }
+  .bg-go { background: var(--go); }
+  .bg-warn { background: var(--warn); }
+  .bg-stop { background: var(--stop); }
+
+  /* Comfort metrics row */
+  .comfort-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .comfort-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 12px;
+    text-align: center;
+  }
+
+  .comfort-icon { font-size: 20px; margin-bottom: 4px; }
+  .comfort-val {
+    font-family: 'Space Mono', monospace;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .comfort-key {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* Time slots */
+  .section-title {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .slots-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .slots-row::-webkit-scrollbar { display: none; }
+
+  .slot {
+    flex-shrink: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    text-align: center;
+    min-width: 72px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .slot:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.15); }
+
+  .slot.best {
+    border-color: var(--go);
+    background: rgba(0,232,122,0.06);
+  }
+
+  .slot-time {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+
+  .slot-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin: 0 auto 4px;
+  }
+
+  .slot-label {
+    font-size: 10px;
+    font-weight: 500;
+  }
+
+  /* Refresh button */
+  .refresh-btn {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    padding: 14px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .refresh-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(123,127,255,0.05);
+  }
+
+  .refresh-icon { display: inline-block; transition: transform 0.6s ease; }
+  .refresh-btn:hover .refresh-icon { transform: rotate(360deg); }
+
+  /* Loading state */
+  .loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    gap: 20px;
+    transition: opacity 0.5s ease;
+  }
+
+  .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+
+  .loader-ring {
+    width: 60px; height: 60px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 2px;
+  }
+
+  /* Particles / ambient */
+  .particles {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+
+  .particle {
+    position: absolute;
+    border-radius: 50%;
+    animation: float-up linear infinite;
+    opacity: 0;
+  }
+
+  @keyframes float-up {
+    0% { transform: translateY(100vh) scale(0); opacity: 0; }
+    10% { opacity: 0.6; }
+    90% { opacity: 0.3; }
+    100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+  }
+
+  /* Error state */
+  .error-notice {
+    background: rgba(255,61,90,0.08);
+    border: 1px solid rgba(255,61,90,0.2);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 12px;
+    color: rgba(255,100,120,0.9);
+    margin-bottom: 16px;
+    display: none;
+  }
+
+  .aqi-index-bar {
+    display: flex;
+    gap: 3px;
+    margin-top: 8px;
+  }
+
+  .aqi-seg {
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    opacity: 0.3;
+    transition: opacity 0.4s;
+  }
+  .aqi-seg.active { opacity: 1; }
+
+  /* Fade in animation */
+  .fade-in {
+    animation: fadeIn 0.5s ease forwards;
+    opacity: 0;
+  }
+
+  @keyframes fadeIn {
+    to { opacity: 1; }
+  }
+
+  .fade-in:nth-child(1) { animation-delay: 0.1s; }
+  .fade-in:nth-child(2) { animation-delay: 0.2s; }
+  .fade-in:nth-child(3) { animation-delay: 0.3s; }
+  .fade-in:nth-child(4) { animation-delay: 0.4s; }
+  .fade-in:nth-child(5) { animation-delay: 0.5s; }
+</style>
+</head>
+<body>
+
+<!-- Particles -->
+<div class="particles" id="particles"></div>
+
+<!-- Loading -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loader-ring"></div>
+  <div class="loading-text">위치 & 대기질 확인 중...</div>
+</div>
+
+<div class="container" id="mainContent" style="opacity:0">
+
+  <header class="fade-in">
+    <div class="logo">RUN<span>.</span>CHECK</div>
+    <div class="time-badge" id="currentTime">--:--</div>
+  </header>
+
+  <div class="location-row fade-in" onclick="refreshData()">
+    <div class="location-dot"></div>
+    <span class="location-text">📍&nbsp;</span>
+    <span class="location-name" id="locationName">위치 감지 중...</span>
+  </div>
+
+  <div class="error-notice" id="errorNotice">
+    ⚠ 실시간 데이터 연결 실패 — 시뮬레이션 데이터로 표시 중
+  </div>
+
+  <!-- VERDICT -->
+  <div class="verdict-card fade-in" id="verdictCard">
+    <div class="verdict-label">오늘의 러닝 판정</div>
+    <div class="verdict-main" id="verdictMain">—</div>
+    <div class="verdict-sub" id="verdictSub">데이터 로딩 중...</div>
+    <div class="verdict-icon" id="verdictIcon">⏳</div>
+  </div>
+
+  <!-- Intensity -->
+  <div class="intensity-strip fade-in">
+    <div class="intensity-icon" id="intensityIcon">🏃</div>
+    <div class="intensity-info">
+      <div class="intensity-title" id="intensityTitle">추천 러닝 강도</div>
+      <div class="intensity-desc" id="intensityDesc">분석 중...</div>
+    </div>
+    <div class="mask-badge" id="maskBadge">—</div>
+  </div>
+
+  <!-- PM metrics -->
+  <div class="metrics-grid fade-in">
+    <div class="metric-card">
+      <div class="metric-label">미세먼지 PM10</div>
+      <div class="metric-value" id="pm10Value">—</div>
+      <div class="metric-unit">㎍/m³</div>
+      <div class="metric-bar-bg">
+        <div class="metric-bar-fill" id="pm10Bar" style="width:0%"></div>
+      </div>
+      <div class="metric-status" id="pm10Status">—</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">초미세먼지 PM2.5</div>
+      <div class="metric-value" id="pm25Value">—</div>
+      <div class="metric-unit">㎍/m³</div>
+      <div class="metric-bar-bg">
+        <div class="metric-bar-fill" id="pm25Bar" style="width:0%"></div>
+      </div>
+      <div class="metric-status" id="pm25Status">—</div>
+    </div>
+  </div>
+
+  <!-- Comfort metrics -->
+  <div class="comfort-row fade-in" id="comfortRow">
+    <div class="comfort-card">
+      <div class="comfort-icon">🌡️</div>
+      <div class="comfort-val" id="tempVal">—</div>
+      <div class="comfort-key">체감온도</div>
+    </div>
+    <div class="comfort-card">
+      <div class="comfort-icon">💧</div>
+      <div class="comfort-val" id="humidVal">—</div>
+      <div class="comfort-key">습도</div>
+    </div>
+    <div class="comfort-card">
+      <div class="comfort-icon">💨</div>
+      <div class="comfort-val" id="windVal">—</div>
+      <div class="comfort-key">풍속</div>
+    </div>
+  </div>
+
+  <!-- Time slots -->
+  <div class="fade-in">
+    <div class="section-title">시간대별 추천</div>
+    <div class="slots-row" id="slotsRow"></div>
+  </div>
+
+  <button class="refresh-btn" onclick="refreshData()">
+    <span class="refresh-icon">↻</span>
+    <span>데이터 새로고침</span>
+  </button>
+
+</div>
+
+<script>
+// ===== STATE =====
+let currentLat = 37.5665, currentLon = 126.9780;
+let locationName = '서울';
+
+// ===== TIME =====
+function updateTime() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2,'0');
+  const m = String(now.getMinutes()).padStart(2,'0');
+  document.getElementById('currentTime').textContent = `${h}:${m}`;
+}
+setInterval(updateTime, 1000);
+updateTime();
+
+// ===== PARTICLES =====
+function createParticles(color = '#7b7fff') {
+  const container = document.getElementById('particles');
+  container.innerHTML = '';
+  const count = 12;
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = Math.random() * 3 + 1;
+    p.style.cssText = `
+      width: ${size}px; height: ${size}px;
+      left: ${Math.random() * 100}%;
+      background: ${color};
+      animation-duration: ${Math.random() * 8 + 6}s;
+      animation-delay: ${Math.random() * 6}s;
+    `;
+    container.appendChild(p);
+  }
+}
+
+// ===== VERDICT LOGIC =====
+function getVerdict(pm10, pm25) {
+  const pm10Score = pm10 <= 50 ? 'good' : pm10 <= 100 ? 'mod' : 'bad';
+  const pm25Score = pm25 <= 15 ? 'good' : pm25 <= 35 ? 'mod' : 'bad';
+
+  if (pm10Score === 'good' && pm25Score === 'good') return 'go';
+  if (pm10Score === 'bad' || pm25Score === 'bad') return 'stop';
+  return 'warn';
+}
+
+function getPMStatus(val, type) {
+  if (type === 'pm10') {
+    if (val <= 30) return { label: '좋음', cls: 'c-go' };
+    if (val <= 50) return { label: '보통', cls: 'c-go' };
+    if (val <= 100) return { label: '나쁨', cls: 'c-warn' };
+    return { label: '매우나쁨', cls: 'c-stop' };
+  } else {
+    if (val <= 15) return { label: '좋음', cls: 'c-go' };
+    if (val <= 25) return { label: '보통', cls: 'c-go' };
+    if (val <= 50) return { label: '나쁨', cls: 'c-warn' };
+    return { label: '매우나쁨', cls: 'c-stop' };
+  }
+}
+
+function getIntensity(verdict, pm10, pm25) {
+  if (verdict === 'go') return {
+    icon: '🏃‍♂️',
+    title: '풀 인텐시티 러닝',
+    desc: '인터벌, 장거리 모두 OK! 최상의 컨디션',
+    mask: '마스크 불필요', maskCls: 'mask-no'
+  };
+  if (verdict === 'warn') return {
+    icon: '🚶‍♂️',
+    title: '가벼운 조깅 추천',
+    desc: '30분 이내 저강도 달리기 권장',
+    mask: '마스크 권장', maskCls: 'mask-maybe'
+  };
+  return {
+    icon: '🏠',
+    title: '실내 운동 추천',
+    desc: '홈트 or 실내 러닝머신으로 대체하세요',
+    mask: '마스크 필수', maskCls: 'mask-yes'
+  };
+}
+
+// ===== RENDER =====
+function renderData(data) {
+  const { pm10, pm25, temp, feelsLike, humidity, windSpeed } = data;
+  const verdict = getVerdict(pm10, pm25);
+
+  // Verdict card
+  const card = document.getElementById('verdictCard');
+  card.className = 'verdict-card fade-in status-' + verdict;
+
+  const verdictMap = {
+    go:   { text: '뛰어도 좋아!', sub: `PM10 ${pm10} · PM2.5 ${pm25} — 대기질이 쾌적합니다. 마음껏 달리세요!`, icon: '✅' },
+    warn: { text: '살짝 위험', sub: `PM10 ${pm10} · PM2.5 ${pm25} — 짧게, 가볍게만 달리세요.`, icon: '⚠️' },
+    stop: { text: '오늘은 쉬어!', sub: `PM10 ${pm10} · PM2.5 ${pm25} — 실외 러닝은 건강에 해롭습니다.`, icon: '🚫' }
+  };
+
+  document.getElementById('verdictMain').textContent = verdictMap[verdict].text;
+  document.getElementById('verdictSub').textContent = verdictMap[verdict].sub;
+  document.getElementById('verdictIcon').textContent = verdictMap[verdict].icon;
+
+  // Intensity
+  const intensity = getIntensity(verdict, pm10, pm25);
+  document.getElementById('intensityIcon').textContent = intensity.icon;
+  document.getElementById('intensityTitle').textContent = intensity.title;
+  document.getElementById('intensityDesc').textContent = intensity.desc;
+  const maskEl = document.getElementById('maskBadge');
+  maskEl.textContent = intensity.mask;
+  maskEl.className = 'mask-badge ' + intensity.maskCls;
+
+  // PM10
+  const pm10Pct = Math.min((pm10 / 150) * 100, 100);
+  const pm10St = getPMStatus(pm10, 'pm10');
+  document.getElementById('pm10Value').textContent = pm10;
+  document.getElementById('pm10Value').className = 'metric-value ' + pm10St.cls;
+  const pm10Bar = document.getElementById('pm10Bar');
+  pm10Bar.style.width = pm10Pct + '%';
+  pm10Bar.className = 'metric-bar-fill ' + (pm10St.cls === 'c-go' ? 'bg-go' : pm10St.cls === 'c-warn' ? 'bg-warn' : 'bg-stop');
+  document.getElementById('pm10Status').className = 'metric-status ' + pm10St.cls;
+  document.getElementById('pm10Status').textContent = pm10St.label + ' (기준 50)';
+
+  // PM2.5
+  const pm25Pct = Math.min((pm25 / 75) * 100, 100);
+  const pm25St = getPMStatus(pm25, 'pm25');
+  document.getElementById('pm25Value').textContent = pm25;
+  document.getElementById('pm25Value').className = 'metric-value ' + pm25St.cls;
+  const pm25Bar = document.getElementById('pm25Bar');
+  pm25Bar.style.width = pm25Pct + '%';
+  pm25Bar.className = 'metric-bar-fill ' + (pm25St.cls === 'c-go' ? 'bg-go' : pm25St.cls === 'c-warn' ? 'bg-warn' : 'bg-stop');
+  document.getElementById('pm25Status').className = 'metric-status ' + pm25St.cls;
+  document.getElementById('pm25Status').textContent = pm25St.label + ' (기준 25)';
+
+  // Comfort
+  document.getElementById('tempVal').textContent = feelsLike + '°';
+  document.getElementById('humidVal').textContent = humidity + '%';
+  document.getElementById('windVal').textContent = windSpeed + 'm/s';
+
+  // Particles color
+  const particleColor = verdict === 'go' ? '#00e87a' : verdict === 'warn' ? '#ffb800' : '#ff3d5a';
+  createParticles(particleColor);
+
+  // Time slots
+  renderTimeSlots(verdict, pm10, pm25);
+}
+
+function renderTimeSlots(currentVerdict, pm10, pm25) {
+  const now = new Date().getHours();
+  const slots = [
+    { label: '새벽', hours: '05~06', offset: -4, modifier: 0.85 },
+    { label: '아침', hours: '07~08', offset: -2, modifier: 0.9 },
+    { label: '오전', hours: '09~10', offset: 0, modifier: 1.0 },
+    { label: '점심', hours: '12~13', offset: 3, modifier: 1.1 },
+    { label: '오후', hours: '15~17', offset: 6, modifier: 1.15 },
+    { label: '저녁', hours: '18~19', offset: 9, modifier: 0.95 },
+    { label: '밤', hours: '21~22', offset: 12, modifier: 0.88 },
+  ];
+
+  const container = document.getElementById('slotsRow');
+  container.innerHTML = '';
+
+  let bestSlot = null;
+  let bestPM = Infinity;
+
+  slots.forEach(slot => {
+    const slotPm10 = Math.max(10, Math.round(pm10 * slot.modifier + (Math.random() * 8 - 4)));
+    const slotPm25 = Math.max(5, Math.round(pm25 * slot.modifier + (Math.random() * 4 - 2)));
+    const v = getVerdict(slotPm10, slotPm25);
+    const score = slotPm10 + slotPm25;
+    if (v === 'go' && score < bestPM) { bestPM = score; bestSlot = slot.label; }
+    slot.v = v;
+    slot.slotPm10 = slotPm10;
+    slot.slotPm25 = slotPm25;
+  });
+
+  slots.forEach(slot => {
+    const el = document.createElement('div');
+    el.className = 'slot' + (slot.label === bestSlot ? ' best' : '');
+
+    const dotColor = slot.v === 'go' ? '#00e87a' : slot.v === 'warn' ? '#ffb800' : '#ff3d5a';
+    const labelColor = slot.v === 'go' ? '#00e87a' : slot.v === 'warn' ? '#ffb800' : '#ff3d5a';
+    const labelText = slot.v === 'go' ? '적합' : slot.v === 'warn' ? '주의' : '부적합';
+
+    el.innerHTML = `
+      <div class="slot-time">${slot.hours}</div>
+      <div class="slot-dot" style="background:${dotColor};box-shadow:0 0 6px ${dotColor}"></div>
+      <div style="font-size:9px;color:rgba(240,240,248,0.4);margin-bottom:2px">${slot.label}</div>
+      <div class="slot-label" style="color:${labelColor}">${labelText}</div>
+      ${slot.label === bestSlot ? '<div style="font-size:9px;color:#00e87a;margin-top:4px">★ BEST</div>' : ''}
+    `;
+    container.appendChild(el);
+  });
+}
+
+// ===== DATA FETCHING (Open-Meteo for weather, AQICN for air quality) =====
+async function fetchAirQuality(lat, lon) {
+  // Using Open-Meteo Air Quality API (free, no key needed)
+  const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=pm10,pm2_5,us_aqi`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('AQ fetch failed');
+  const json = await res.json();
+  return {
+    pm10: Math.round(json.current.pm10),
+    pm25: Math.round(json.current.pm2_5),
+  };
+}
+
+async function fetchWeather(lat, lon) {
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Weather fetch failed');
+  const json = await res.json();
+  return {
+    temp: Math.round(json.current.temperature_2m),
+    feelsLike: Math.round(json.current.apparent_temperature),
+    humidity: json.current.relative_humidity_2m,
+    windSpeed: Math.round(json.current.wind_speed_10m / 3.6 * 10) / 10,
+  };
+}
+
+async function fetchLocation() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) return reject('no geo');
+    navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 8000 });
+  });
+}
+
+async function reverseGeocode(lat, lon) {
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=ko`);
+    const json = await res.json();
+    const addr = json.address;
+    return addr.city || addr.town || addr.county || addr.state || '내 위치';
+  } catch {
+    return '내 위치';
+  }
+}
+
+// Fallback simulation data
+function getFallbackData() {
+  const pm10 = Math.floor(Math.random() * 80 + 10);
+  const pm25 = Math.floor(Math.random() * 40 + 5);
+  const temp = Math.floor(Math.random() * 20 + 5);
+  return {
+    pm10, pm25,
+    temp,
+    feelsLike: temp - Math.floor(Math.random() * 5),
+    humidity: Math.floor(Math.random() * 40 + 40),
+    windSpeed: Math.round(Math.random() * 5 * 10) / 10,
+  };
+}
+
+async function refreshData() {
+  document.getElementById('loadingOverlay').classList.remove('hidden');
+
+  try {
+    // Get location
+    try {
+      const pos = await fetchLocation();
+      currentLat = pos.coords.latitude;
+      currentLon = pos.coords.longitude;
+      locationName = await reverseGeocode(currentLat, currentLon);
+    } catch {
+      locationName = '서울 (기본값)';
+    }
+
+    document.getElementById('locationName').textContent = locationName;
+
+    // Fetch data in parallel
+    const [aqData, wxData] = await Promise.all([
+      fetchAirQuality(currentLat, currentLon).catch(() => null),
+      fetchWeather(currentLat, currentLon).catch(() => null),
+    ]);
+
+    let finalData;
+    if (aqData && wxData) {
+      finalData = { ...aqData, ...wxData };
+      document.getElementById('errorNotice').style.display = 'none';
+    } else {
+      finalData = getFallbackData();
+      document.getElementById('errorNotice').style.display = 'block';
+    }
+
+    renderData(finalData);
+
+  } catch (err) {
+    const fallback = getFallbackData();
+    renderData(fallback);
+    document.getElementById('errorNotice').style.display = 'block';
+    document.getElementById('locationName').textContent = '서울 (시뮬레이션)';
+  }
+
+  // Show main content
+  document.getElementById('loadingOverlay').classList.add('hidden');
+  const main = document.getElementById('mainContent');
+  main.style.opacity = '1';
+  main.style.transition = 'opacity 0.4s ease';
+}
+
+// ===== INIT =====
+createParticles();
+refreshData();
+</script>
+</body>
+</html>
