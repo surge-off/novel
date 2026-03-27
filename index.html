@@ -22,6 +22,31 @@
             color: white;
             text-align: center;
         }
+        
+        /* 드롭다운 메뉴 스타일 추가 */
+        .select-container {
+            margin-bottom: 30px;
+            z-index: 10;
+        }
+        select {
+            padding: 10px 20px;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            background-color: rgba(0, 0, 0, 0.3);
+            color: white;
+            font-family: inherit;
+            font-weight: bold;
+            outline: none;
+            cursor: pointer;
+            appearance: none; /* 브라우저 기본 화살표 숨김 */
+            text-align: center;
+        }
+        select option {
+            background-color: #1e293b;
+            color: white;
+        }
+
         #icon {
             font-size: 100px;
             margin-bottom: 20px;
@@ -65,6 +90,25 @@
 </head>
 <body>
 
+    <div class="select-container">
+        <select id="station-select">
+            <optgroup label="서울특별시">
+                <option value="중구">서울 중구</option>
+                <option value="강남구">서울 강남구</option>
+                <option value="종로구">서울 종로구</option>
+            </optgroup>
+            <optgroup label="경기도">
+                <option value="인계동" selected>수원시 인계동</option>
+                <option value="백석동">고양시 백석동</option>
+                <option value="신흥동">성남시 신흥동</option>
+            </optgroup>
+            <optgroup label="기타 지역">
+                <option value="연산동">부산 연산동</option>
+                <option value="송도">인천 송도</option>
+            </optgroup>
+        </select>
+    </div>
+
     <div id="icon">⏳</div>
     <div id="message">대기질 분석 중...</div>
     <div id="primary-detail">데이터를 불러오는 중입니다</div>
@@ -93,10 +137,9 @@
 
     <script>
         const API_KEY = 'd52470c737c315329b21e95427f7bcb11e1750f4f7e64cf7671e84b14ff59cc7'; 
-        const SIDO_NAME = '경기'; 
-        const STATION_NAME = '인계동'; 
 
-        function updateUI(pm10, pm25, o3, no2) {
+        // UI 업데이트 함수 (stationName 파라미터 추가)
+        function updateUI(pm10, pm25, o3, no2, stationName) {
             const body = document.body;
             const icon = document.getElementById('icon');
             const message = document.getElementById('message');
@@ -107,7 +150,11 @@
             document.getElementById('val-pm25').innerText = `${pm25} µg/m³`;
             document.getElementById('val-o3').innerText = `${o3} ppm`;
             document.getElementById('val-no2').innerText = `${no2} ppm`;
-            document.getElementById('location-info').innerText = `📍 ${SIDO_NAME} ${STATION_NAME} 측정소 기준`;
+            
+            // 셀렉트 박스에서 선택된 텍스트(예: "수원시 인계동")를 가져와서 표시
+            const selectElement = document.getElementById('station-select');
+            const selectedText = selectElement.options[selectElement.selectedIndex].text;
+            document.getElementById('location-info').innerText = `📍 ${selectedText} 측정소 기준`;
 
             let status = 0; 
             
@@ -138,17 +185,21 @@
             }
         }
 
-        async function getAirQualityData() {
-            // 수정된 부분: '측정소별 실시간 측정정보 조회' API를 사용하여 인계동 데이터만 직접 호출 (버전 1.3 적용)
-            const url = `https://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getMsrstnAcctoRltmMesureDnsty?serviceKey=${API_KEY}&returnType=json&numOfRows=1&pageNo=1&stationName=${encodeURIComponent(STATION_NAME)}&dataTerm=DAILY&ver=1.3`;
+        // 데이터 페칭 함수 (stationName을 매개변수로 받음)
+        async function getAirQualityData(stationName) {
+            // 로딩 상태 표시
+            document.getElementById('icon').innerText = '⏳';
+            document.getElementById('message').innerText = '대기질 분석 중...';
+            document.getElementById('primary-detail').innerText = '데이터를 불러오는 중입니다';
+            document.getElementById('data-box').style.display = 'none';
+
+            const url = `https://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getMsrstnAcctoRltmMesureDnsty?serviceKey=${API_KEY}&returnType=json&numOfRows=1&pageNo=1&stationName=${encodeURIComponent(stationName)}&dataTerm=DAILY&ver=1.3`;
 
             try {
                 const response = await fetch(url);
                 const data = await response.json();
 
-                // 정상적으로 배열 형태의 데이터를 받았는지 검증
                 if (data.response && data.response.body && data.response.body.items && data.response.body.items.length > 0) {
-                    // 가장 최신 데이터는 배열의 첫 번째[0]에 위치합니다
                     const stationData = data.response.body.items[0];
 
                     const pm10 = parseInt(stationData.pm10Value);
@@ -157,7 +208,7 @@
                     const no2 = stationData.no2Value || '-';
                     
                     if (!isNaN(pm10) || !isNaN(pm25)) {
-                        updateUI(pm10, pm25, o3, no2);
+                        updateUI(pm10, pm25, o3, no2, stationName);
                     } else {
                         document.getElementById('icon').innerText = '🛠️';
                         document.getElementById('message').innerText = '측정소 점검 중';
@@ -166,7 +217,7 @@
                 } else {
                     document.getElementById('icon').innerText = '😥';
                     document.getElementById('message').innerText = '데이터 없음';
-                    document.getElementById('primary-detail').innerText = '인계동 측정소의 최신 데이터가 없습니다.';
+                    document.getElementById('primary-detail').innerText = `${stationName} 측정소의 최신 데이터가 없습니다.`;
                 }
             } catch (error) {
                 console.error("API 호출 에러:", error);
@@ -176,8 +227,16 @@
             }
         }
 
+        // 드롭다운 변경 이벤트 리스너
+        document.getElementById('station-select').addEventListener('change', (e) => {
+            const selectedStation = e.target.value;
+            getAirQualityData(selectedStation);
+        });
+
+        // 초기 로딩 시 실행
         window.onload = () => {
-            getAirQualityData(); 
+            const initialStation = document.getElementById('station-select').value;
+            getAirQualityData(initialStation); 
         };
     </script>
 </body>
