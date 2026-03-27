@@ -1,754 +1,257 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RUN CHECK — 오늘 뛸 수 있을까?</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+KR:wght@300;400;600;700&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg: #0a0a0f;
-    --surface: #13131a;
-    --card: #1a1a24;
-    --border: rgba(255,255,255,0.08);
-    --accent-green: #00ff87;
-    --accent-yellow: #ffcc00;
-    --accent-orange: #ff6b00;
-    --accent-red: #ff1744;
-    --accent-purple: #d500f9;
-    --text: #f0f0f5;
-    --muted: #6b6b80;
-    --radius: 16px;
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Noto Sans KR', sans-serif;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* Background effect */
-  body::before {
-    content: '';
-    position: fixed;
-    top: -30%;
-    left: -20%;
-    width: 70vw;
-    height: 70vw;
-    background: radial-gradient(circle, rgba(0,255,135,0.04) 0%, transparent 70%);
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .container {
-    max-width: 480px;
-    margin: 0 auto;
-    padding: 32px 20px 60px;
-    position: relative;
-    z-index: 1;
-  }
-
-  /* Header */
-  .header {
-    text-align: center;
-    margin-bottom: 36px;
-  }
-
-  .header-eyebrow {
-    font-size: 11px;
-    letter-spacing: 0.3em;
-    color: var(--accent-green);
-    text-transform: uppercase;
-    margin-bottom: 6px;
-  }
-
-  .header-title {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(52px, 15vw, 80px);
-    letter-spacing: 0.04em;
-    line-height: 0.9;
-    color: var(--text);
-  }
-
-  .header-title span {
-    color: var(--accent-green);
-  }
-
-  .header-sub {
-    font-size: 13px;
-    color: var(--muted);
-    margin-top: 10px;
-    font-weight: 300;
-  }
-
-  /* Location selector */
-  .location-section {
-    margin-bottom: 20px;
-  }
-
-  .section-label {
-    font-size: 11px;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 10px;
-  }
-
-  .location-row {
-    display: flex;
-    gap: 10px;
-    align-items: stretch;
-  }
-
-  select {
-    flex: 1;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    color: var(--text);
-    font-family: 'Noto Sans KR', sans-serif;
-    font-size: 14px;
-    padding: 12px 14px;
-    outline: none;
-    cursor: pointer;
-    appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6b80' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-    padding-right: 32px;
-    transition: border-color 0.2s;
-  }
-
-  select:focus {
-    border-color: var(--accent-green);
-  }
-
-  .btn-gps {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    color: var(--accent-green);
-    width: 46px;
-    min-width: 46px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background 0.2s, border-color 0.2s;
-    font-size: 18px;
-  }
-
-  .btn-gps:hover {
-    background: rgba(0,255,135,0.1);
-    border-color: var(--accent-green);
-  }
-
-  .btn-check {
-    width: 100%;
-    background: var(--accent-green);
-    border: none;
-    border-radius: 12px;
-    color: #000;
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 22px;
-    letter-spacing: 0.1em;
-    padding: 16px;
-    cursor: pointer;
-    margin-top: 12px;
-    transition: opacity 0.2s, transform 0.1s;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .btn-check:hover { opacity: 0.9; }
-  .btn-check:active { transform: scale(0.98); }
-
-  .btn-check:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-
-  /* Loading state */
-  .loading-wrap {
-    display: none;
-    text-align: center;
-    padding: 48px 0;
-  }
-
-  .loader {
-    width: 48px;
-    height: 48px;
-    border: 2px solid var(--border);
-    border-top-color: var(--accent-green);
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    margin: 0 auto 16px;
-  }
-
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .loading-text {
-    color: var(--muted);
-    font-size: 13px;
-    font-weight: 300;
-  }
-
-  /* Result card */
-  .result-card {
-    display: none;
-    border-radius: var(--radius);
-    background: var(--card);
-    border: 1px solid var(--border);
-    overflow: hidden;
-    animation: slideUp 0.4s cubic-bezier(0.22, 1, 0.36, 1);
-  }
-
-  @keyframes slideUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .verdict-banner {
-    padding: 28px 24px;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .verdict-banner::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    opacity: 0.12;
-  }
-
-  .verdict-banner.go::before { background: var(--accent-green); }
-  .verdict-banner.caution::before { background: var(--accent-yellow); }
-  .verdict-banner.warning::before { background: var(--accent-orange); }
-  .verdict-banner.stop::before { background: var(--accent-red); }
-  .verdict-banner.hazard::before { background: var(--accent-purple); }
-
-  .verdict-emoji {
-    font-size: 52px;
-    line-height: 1;
-    margin-bottom: 12px;
-    display: block;
-  }
-
-  .verdict-title {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 36px;
-    letter-spacing: 0.06em;
-  }
-
-  .verdict-banner.go .verdict-title { color: var(--accent-green); }
-  .verdict-banner.caution .verdict-title { color: var(--accent-yellow); }
-  .verdict-banner.warning .verdict-title { color: var(--accent-orange); }
-  .verdict-banner.stop .verdict-title { color: var(--accent-red); }
-  .verdict-banner.hazard .verdict-title { color: var(--accent-purple); }
-
-  .verdict-desc {
-    font-size: 13px;
-    color: var(--muted);
-    margin-top: 6px;
-    font-weight: 300;
-  }
-
-  /* Metrics */
-  .metrics {
-    padding: 20px 24px;
-    border-top: 1px solid var(--border);
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-  }
-
-  .metric-item {
-    position: relative;
-  }
-
-  .metric-label {
-    font-size: 10px;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 4px;
-  }
-
-  .metric-value {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 34px;
-    line-height: 1;
-    letter-spacing: 0.02em;
-  }
-
-  .metric-unit {
-    font-size: 11px;
-    color: var(--muted);
-    margin-left: 2px;
-    font-family: 'Noto Sans KR', sans-serif;
-  }
-
-  .metric-grade {
-    display: inline-block;
-    font-size: 10px;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 20px;
-    margin-top: 4px;
-    letter-spacing: 0.05em;
-  }
-
-  .grade-good { background: rgba(0,255,135,0.15); color: var(--accent-green); }
-  .grade-normal { background: rgba(100,200,255,0.15); color: #64c8ff; }
-  .grade-bad { background: rgba(255,107,0,0.15); color: var(--accent-orange); }
-  .grade-verybad { background: rgba(255,23,68,0.15); color: var(--accent-red); }
-
-  /* Gauge bar */
-  .gauge-bar {
-    height: 4px;
-    background: var(--border);
-    border-radius: 2px;
-    margin-top: 8px;
-    overflow: hidden;
-  }
-
-  .gauge-fill {
-    height: 100%;
-    border-radius: 2px;
-    transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
-  }
-
-  /* Station info */
-  .station-info {
-    padding: 14px 24px;
-    border-top: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-  }
-
-  .station-name {
-    font-size: 12px;
-    color: var(--muted);
-  }
-
-  .station-time {
-    font-size: 11px;
-    color: var(--muted);
-    font-weight: 300;
-  }
-
-  /* Tip section */
-  .tip-box {
-    padding: 16px 24px;
-    border-top: 1px solid var(--border);
-    background: rgba(255,255,255,0.02);
-  }
-
-  .tip-text {
-    font-size: 12px;
-    color: var(--muted);
-    line-height: 1.7;
-    font-weight: 300;
-  }
-
-  .tip-text strong {
-    color: var(--text);
-    font-weight: 600;
-  }
-
-  /* Grade reference */
-  .grade-ref {
-    margin-top: 24px;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 20px;
-  }
-
-  .grade-ref-title {
-    font-size: 11px;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--muted);
-    margin-bottom: 14px;
-  }
-
-  .grade-rows {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .grade-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 12px;
-  }
-
-  .grade-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
-  .grade-row-label { color: var(--text); font-weight: 600; min-width: 44px; }
-  .grade-row-val { color: var(--muted); flex: 1; font-weight: 300; }
-  .grade-row-run { font-weight: 600; }
-
-  /* Error */
-  .error-box {
-    display: none;
-    background: rgba(255,23,68,0.08);
-    border: 1px solid rgba(255,23,68,0.2);
-    border-radius: 12px;
-    padding: 16px 20px;
-    font-size: 13px;
-    color: var(--accent-red);
-    margin-top: 12px;
-    font-weight: 300;
-  }
-
-  /* Footer */
-  .footer {
-    text-align: center;
-    margin-top: 32px;
-    font-size: 11px;
-    color: var(--muted);
-    font-weight: 300;
-    line-height: 1.8;
-  }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>러닝 신호등 🏃‍♂️</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+            transition: background-color 0.5s ease;
+            background-color: #1e293b;
+            color: white;
+            text-align: center;
+        }
+        #icon {
+            font-size: 100px;
+            margin-bottom: 20px;
+            animation: bounce 2s infinite;
+        }
+        #message {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+            padding: 0 20px;
+            word-break: keep-all;
+        }
+        #primary-detail {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 20px;
+            opacity: 0.9;
+        }
+        .data-box {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px 25px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            display: none;
+            width: 80%;
+            max-width: 350px;
+        }
+        .data-row {
+            font-size: 1rem;
+            margin: 8px 0;
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+        #location-info {
+            font-size: 0.9rem;
+            opacity: 0.7;
+            background: rgba(0,0,0,0.1);
+            padding: 8px 15px;
+            border-radius: 20px;
+        }
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-20px); }
+            60% { transform: translateY(-10px); }
+        }
+    </style>
 </head>
 <body>
 
-<div class="container">
-  <!-- Header -->
-  <div class="header">
-    <div class="header-eyebrow">Air Quality Running Guide</div>
-    <div class="header-title">RUN<br><span>CHECK</span></div>
-    <div class="header-sub">오늘 대기질로 러닝 가능 여부를 확인하세요</div>
-  </div>
-
-  <!-- Location -->
-  <div class="location-section">
-    <div class="section-label">측정소 위치 선택</div>
-    <div class="location-row">
-      <select id="sidoSelect" onchange="updateStations()">
-        <option value="">시/도 선택</option>
-        <option value="서울">서울</option>
-        <option value="부산">부산</option>
-        <option value="대구">대구</option>
-        <option value="인천">인천</option>
-        <option value="광주">광주</option>
-        <option value="대전">대전</option>
-        <option value="울산">울산</option>
-        <option value="경기">경기</option>
-        <option value="강원">강원</option>
-        <option value="충북">충북</option>
-        <option value="충남">충남</option>
-        <option value="전북">전북</option>
-        <option value="전남">전남</option>
-        <option value="경북">경북</option>
-        <option value="경남">경남</option>
-        <option value="제주">제주</option>
-        <option value="세종">세종</option>
-      </select>
-      <button class="btn-gps" onclick="getGPSLocation()" title="현재 위치 자동 감지">📍</button>
-    </div>
-    <div class="location-row" style="margin-top:10px;">
-      <select id="stationSelect">
-        <option value="">측정소 선택</option>
-      </select>
-    </div>
-    <button class="btn-check" id="checkBtn" onclick="checkAirQuality()" disabled>
-      대기질 확인하기 →
-    </button>
-    <div class="error-box" id="errorBox"></div>
-  </div>
-
-  <!-- Loading -->
-  <div class="loading-wrap" id="loadingWrap">
-    <div class="loader"></div>
-    <div class="loading-text">대기질 데이터를 불러오는 중...</div>
-  </div>
-
-  <!-- Result -->
-  <div class="result-card" id="resultCard">
-    <div class="verdict-banner" id="verdictBanner">
-      <span class="verdict-emoji" id="verdictEmoji">🏃</span>
-      <div class="verdict-title" id="verdictTitle">-</div>
-      <div class="verdict-desc" id="verdictDesc">-</div>
-    </div>
-    <div class="metrics">
-      <!-- PM10 -->
-      <div class="metric-item">
-        <div class="metric-label">미세먼지 PM10</div>
-        <div class="metric-value" id="pm10Val">-<span class="metric-unit">µg/m³</span></div>
-        <div class="metric-grade" id="pm10Grade">-</div>
-        <div class="gauge-bar"><div class="gauge-fill" id="pm10Gauge" style="width:0%"></div></div>
-      </div>
-      <!-- PM2.5 -->
-      <div class="metric-item">
-        <div class="metric-label">초미세먼지 PM2.5</div>
-        <div class="metric-value" id="pm25Val">-<span class="metric-unit">µg/m³</span></div>
-        <div class="metric-grade" id="pm25Grade">-</div>
-        <div class="gauge-bar"><div class="gauge-fill" id="pm25Gauge" style="width:0%"></div></div>
-      </div>
-    </div>
-    <div class="station-info">
-      <span class="station-name" id="stationNameDisp">-</span>
-      <span class="station-time" id="dataTime">-</span>
-    </div>
-    <div class="tip-box">
-      <div class="tip-text" id="tipText">-</div>
-    </div>
-  </div>
-
-  <!-- Grade reference -->
-  <div class="grade-ref">
-    <div class="grade-ref-title">등급 기준표 (WHO / 환경부)</div>
-    <div class="grade-rows">
-      <div class="grade-row">
-        <div class="grade-dot" style="background:var(--accent-green)"></div>
-        <span class="grade-row-label">좋음</span>
-        <span class="grade-row-val">PM10 ≤30 / PM2.5 ≤15</span>
-        <span class="grade-row-run" style="color:var(--accent-green)">✓ 뛰어요</span>
-      </div>
-      <div class="grade-row">
-        <div class="grade-dot" style="background:#64c8ff"></div>
-        <span class="grade-row-label">보통</span>
-        <span class="grade-row-val">PM10 ≤80 / PM2.5 ≤35</span>
-        <span class="grade-row-run" style="color:#64c8ff">△ 가능</span>
-      </div>
-      <div class="grade-row">
-        <div class="grade-dot" style="background:var(--accent-orange)"></div>
-        <span class="grade-row-label">나쁨</span>
-        <span class="grade-row-val">PM10 ≤150 / PM2.5 ≤75</span>
-        <span class="grade-row-run" style="color:var(--accent-orange)">⚠ 자제</span>
-      </div>
-      <div class="grade-row">
-        <div class="grade-dot" style="background:var(--accent-red)"></div>
-        <span class="grade-row-label">매우나쁨</span>
-        <span class="grade-row-val">PM10 >150 / PM2.5 >75</span>
-        <span class="grade-row-run" style="color:var(--accent-red)">✗ 금지</span>
-      </div>
-    </div>
-  </div>
-
-  <div class="footer">
-    데이터 출처: 한국환경공단 에어코리아<br>
-    공공데이터포털 대기오염정보 API
-  </div>
-</div>
-
-<script>
-const API_KEY = 'd52470c737c315329b21e95427f7bcb11e1750f4f7e64cf7671e84b14ff59cc7';
-
-const STATIONS_BY_SIDO = {
-  '서울': ['중구','종로구','용산구','은평구','서대문구','마포구','강서구','구로구','영등포구','동작구','관악구','서초구','강남구','송파구','강동구','성동구','광진구','동대문구','중랑구','성북구','강북구','도봉구','노원구','양천구','금천구'],
-  '경기': ['수원', '성남', '의정부', '안양', '부천', '광명', '평택', '동두천', '안산', '고양', '과천', '구리', '남양주', '오산', '시흥', '군포', '의왕', '하남', '용인', '파주', '이천', '안성', '김포', '화성', '광주', '양주', '포천', '여주', '가평', '양평', '연천'],
-  '부산': ['중구','서구','동구','영도구','부산진구','동래구','남구','북구','해운대구','사하구','금정구','강서구','연제구','수영구','사상구','기장군'],
-  '대구': ['중구','동구','서구','남구','북구','수성구','달서구','달성군'],
-  '인천': ['중구','동구','미추홀구','연수구','남동구','부평구','계양구','서구','강화군','옹진군'],
-  '광주': ['동구','서구','남구','북구','광산구'],
-  '대전': ['동구','중구','서구','유성구','대덕구'],
-  '울산': ['중구','남구','동구','북구','울주군'],
-  '강원': ['춘천','원주','강릉','동해','태백','속초','삼척','홍천','횡성','영월','평창','정선','철원','화천','양구','인제','고성','양양'],
-  '충북': ['청주','충주','제천','보은','옥천','영동','증평','진천','괴산','음성','단양'],
-  '충남': ['천안','공주','보령','아산','서산','논산','계룡','당진','금산','부여','서천','청양','홍성','예산','태안'],
-  '전북': ['전주','군산','익산','정읍','남원','김제','완주','진안','무주','장수','임실','순창','고창','부안'],
-  '전남': ['목포','여수','순천','나주','광양','담양','곡성','구례','고흥','보성','화순','장흥','강진','해남','영암','무안','함평','영광','장성','완도','진도','신안'],
-  '경북': ['포항','경주','김천','안동','구미','영주','영천','상주','문경','경산','군위','의성','청송','영양','영덕','청도','고령','성주','칠곡','예천','봉화','울진','울릉'],
-  '경남': ['창원','진주','통영','사천','김해','밀양','거제','양산','의령','함안','창녕','고성','남해','하동','산청','함양','거창','합천'],
-  '제주': ['제주시','서귀포시'],
-  '세종': ['세종']
-};
-
-// GPS 기반 시/도 매핑
-const SIDO_GPS = {
-  '서울': { lat: [37.4, 37.7], lng: [126.7, 127.2] },
-  '경기': { lat: [36.9, 38.3], lng: [126.3, 127.9] },
-  '인천': { lat: [37.2, 37.7], lng: [126.2, 126.8] },
-};
-
-function updateStations() {
-  const sido = document.getElementById('sidoSelect').value;
-  const stSelect = document.getElementById('stationSelect');
-  stSelect.innerHTML = '<option value="">측정소 선택</option>';
-  if (sido && STATIONS_BY_SIDO[sido]) {
-    STATIONS_BY_SIDO[sido].forEach(st => {
-      const opt = document.createElement('option');
-      opt.value = st;
-      opt.textContent = st;
-      stSelect.appendChild(opt);
-    });
-  }
-  updateCheckBtn();
-}
-
-document.getElementById('stationSelect').addEventListener('change', updateCheckBtn);
-
-function updateCheckBtn() {
-  const sido = document.getElementById('sidoSelect').value;
-  const station = document.getElementById('stationSelect').value;
-  document.getElementById('checkBtn').disabled = !(sido && station);
-}
-
-async function getGPSLocation() {
-  if (!navigator.geolocation) {
-    showError('GPS를 지원하지 않는 브라우저입니다.');
-    return;
-  }
-  const btn = document.querySelector('.btn-gps');
-  btn.textContent = '⏳';
-  navigator.geolocation.getCurrentPosition(async (pos) => {
-    btn.textContent = '📍';
-    const lat = pos.coords.latitude;
-    const lng = pos.coords.longitude;
-    // 위도/경도로 시/도 추정 (간단 로직)
-    let guessedSido = '경기';
-    if (lat >= 37.4 && lat <= 37.7 && lng >= 126.7 && lng <= 127.2) guessedSido = '서울';
-    else if (lat >= 35.0 && lat <= 35.3 && lng >= 128.9 && lng <= 129.4) guessedSido = '부산';
-    else if (lat >= 35.7 && lat <= 36.1 && lng >= 128.3 && lng <= 128.8) guessedSido = '대구';
-    else if (lat >= 37.3 && lat <= 37.7 && lng >= 126.2 && lng <= 126.8) guessedSido = '인천';
-    else if (lat >= 35.0 && lat <= 35.3 && lng >= 126.7 && lng <= 127.1) guessedSido = '광주';
-    else if (lat >= 36.2 && lat <= 36.5 && lng >= 127.3 && lng <= 127.6) guessedSido = '대전';
-    else if (lat >= 35.4 && lat <= 35.7 && lng >= 129.1 && lng <= 129.5) guessedSido = '울산';
-    else if (lat >= 33.2 && lat <= 33.6) guessedSido = '제주';
+    <div id="icon">📍</div>
+    <div id="message">위치 확인 중...</div>
+    <div id="primary-detail">GPS 정보를 가져오고 있습니다</div>
     
-    document.getElementById('sidoSelect').value = guessedSido;
-    updateStations();
-    // 첫 번째 측정소 자동 선택
-    const stSelect = document.getElementById('stationSelect');
-    if (stSelect.options.length > 1) {
-      stSelect.selectedIndex = 1;
-      updateCheckBtn();
-    }
-  }, () => {
-    btn.textContent = '📍';
-    showError('위치 정보를 가져오지 못했습니다. 직접 선택해주세요.');
-  });
-}
+    <div class="data-box" id="data-box">
+        <div class="data-row">
+            <span>미세먼지 (PM10)</span>
+            <span id="val-pm10" style="font-weight: bold;">-</span>
+        </div>
+        <div class="data-row">
+            <span>초미세먼지 (PM2.5)</span>
+            <span id="val-pm25" style="font-weight: bold;">-</span>
+        </div>
+        <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.2); margin: 12px 0;">
+        <div class="data-row" style="font-size: 0.9rem; opacity: 0.8;">
+            <span>오존 (O3)</span>
+            <span id="val-o3">-</span>
+        </div>
+        <div class="data-row" style="font-size: 0.9rem; opacity: 0.8;">
+            <span>이산화질소 (NO2)</span>
+            <span id="val-no2">-</span>
+        </div>
+    </div>
 
-async function checkAirQuality() {
-  const sido = document.getElementById('sidoSelect').value;
-  const station = document.getElementById('stationSelect').value;
-  if (!sido || !station) return;
+    <div id="location-info"></div>
 
-  hideError();
-  document.getElementById('loadingWrap').style.display = 'block';
-  document.getElementById('resultCard').style.display = 'none';
+    <script>
+        // 발급받은 API 키 세팅
+        const AIR_KOREA_API_KEY = 'd52470c737c315329b21e95427f7bcb11e1750f4f7e64cf7671e84b14ff59cc7'; 
+        const KAKAO_REST_API_KEY = '8811331ec6b369285c4409ab6f200d2f'; 
 
-  try {
-    const url = `https://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getMsrstnAcctoRltmMesureDnsty?stationName=${encodeURIComponent(station)}&dataTerm=DAILY&pageNo=1&numOfRows=1&returnType=json&serviceKey=${API_KEY}&ver=1.0`;
-    
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error('API 응답 오류');
-    const data = await resp.json();
-    
-    const items = data?.response?.body?.items;
-    if (!items || items.length === 0) throw new Error('데이터 없음');
-    
-    const item = items[0];
-    const pm10 = parseFloat(item.pm10Value);
-    const pm25 = parseFloat(item.pm25Value);
+        // 4단계: 화면 색상 및 데이터 업데이트
+        function updateUI(pm10, pm25, o3, no2, stationName) {
+            const body = document.body;
+            const icon = document.getElementById('icon');
+            const message = document.getElementById('message');
+            const primaryDetail = document.getElementById('primary-detail');
+            
+            // 데이터 박스 표시
+            document.getElementById('data-box').style.display = 'block';
+            document.getElementById('val-pm10').innerText = `${pm10} µg/m³`;
+            document.getElementById('val-pm25').innerText = `${pm25} µg/m³`;
+            document.getElementById('val-o3').innerText = `${o3} ppm`;
+            document.getElementById('val-no2').innerText = `${no2} ppm`;
+            document.getElementById('location-info').innerText = `📍 현재 위치: '${stationName}' 측정소`;
 
-    if (isNaN(pm10) || isNaN(pm25)) throw new Error('측정값을 읽을 수 없습니다. 잠시 후 다시 시도해주세요.');
+            // 상태 판별 (PM10, PM2.5 중 더 나쁜 수치 기준)
+            let status = 0; 
+            if (pm10 > 150 || pm25 > 75) status = 3;
+            else if (pm10 > 80 || pm25 > 35) status = 2;
+            else if (pm10 > 30 || pm25 > 15) status = 1;
 
-    document.getElementById('loadingWrap').style.display = 'none';
-    renderResult(pm10, pm25, station, item.dataTime);
+            if (status === 0) {
+                body.style.backgroundColor = '#3b82f6'; // 파랑
+                icon.innerText = '🤩';
+                message.innerText = '최상의 컨디션!';
+                primaryDetail.innerText = '당장 러닝화를 신으세요';
+            } else if (status === 1) {
+                body.style.backgroundColor = '#22c55e'; // 초록
+                icon.innerText = '🏃‍♂️';
+                message.innerText = '가볍게 뛰기 좋아요';
+                primaryDetail.innerText = '야외 훈련하기 무난한 공기입니다';
+            } else if (status === 2) {
+                body.style.backgroundColor = '#f97316'; // 주황
+                icon.innerText = '😷';
+                message.innerText = '마스크 챙기셨나요?';
+                primaryDetail.innerText = '호흡기가 예민하다면 실내 훈련 권장';
+            } else {
+                body.style.backgroundColor = '#ef4444'; // 빨강
+                icon.innerText = '🛑';
+                message.innerText = '절대 나가지 마세요!';
+                primaryDetail.innerText = '오늘은 폼롤러와 실내 코어 운동의 날';
+            }
+        }
 
-  } catch (e) {
-    document.getElementById('loadingWrap').style.display = 'none';
-    showError('데이터를 불러오지 못했습니다: ' + e.message);
-  }
-}
+        // 3단계: 측정소 이름으로 대기질 데이터 가져오기 (에어코리아)
+        async function getAirQualityData(stationName) {
+            const url = `https://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getMsrstnAcctoRltmMesureDnsty?serviceKey=${AIR_KOREA_API_KEY}&returnType=json&numOfRows=1&pageNo=1&stationName=${encodeURIComponent(stationName)}&dataTerm=DAILY&ver=1.3`;
 
-function getGrade(pm10, pm25) {
-  // 더 나쁜 쪽 기준으로 판단
-  const pm10Grade = pm10 <= 30 ? 'good' : pm10 <= 80 ? 'normal' : pm10 <= 150 ? 'bad' : 'verybad';
-  const pm25Grade = pm25 <= 15 ? 'good' : pm25 <= 35 ? 'normal' : pm25 <= 75 ? 'bad' : 'verybad';
-  const grades = ['good', 'normal', 'bad', 'verybad'];
-  return grades[Math.max(grades.indexOf(pm10Grade), grades.indexOf(pm25Grade))];
-}
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.response && data.response.body && data.response.body.items.length > 0) {
+                    const item = data.response.body.items[0];
+                    const pm10 = parseInt(item.pm10Value);
+                    const pm25 = parseInt(item.pm25Value);
+                    
+                    if (!isNaN(pm10) || !isNaN(pm25)) {
+                        updateUI(pm10, pm25, item.o3Value || '-', item.no2Value || '-', stationName);
+                    } else {
+                        throw new Error("점검 중");
+                    }
+                } else {
+                    throw new Error("데이터 없음");
+                }
+            } catch (error) {
+                document.getElementById('icon').innerText = '🛠️';
+                document.getElementById('message').innerText = '측정소 점검 중';
+                document.getElementById('primary-detail').innerText = `'${stationName}' 측정소 데이터가 없습니다.`;
+                document.getElementById('location-info').innerText = '잠시 후 다시 시도해주세요.';
+            }
+        }
 
-function renderResult(pm10, pm25, station, time) {
-  const grade = getGrade(pm10, pm25);
-  
-  const verdictMap = {
-    good:    { cls:'go',      emoji:'🏃‍♂️', title:'러닝 GO!',        desc:'대기질이 깨끗합니다. 마음껏 달리세요!' },
-    normal:  { cls:'caution', emoji:'👟', title:'러닝 가능',         desc:'보통 수준입니다. 가볍게 달릴 수 있어요.' },
-    bad:     { cls:'warning', emoji:'😷', title:'러닝 자제',         desc:'미세먼지가 높습니다. 마스크 착용을 권장합니다.' },
-    verybad: { cls:'stop',    emoji:'🚫', title:'러닝 금지',         desc:'매우 나쁨 수준입니다. 실외 활동을 피하세요.' },
-  };
+        // 2단계: TM 좌표로 가장 가까운 측정소 찾기 (에어코리아)
+        async function getNearestStation(tmX, tmY) {
+            const url = `https://apis.data.go.kr/B552584/MsrstnInfoInqireSvc/getNearbyMsrstnList?serviceKey=${AIR_KOREA_API_KEY}&returnType=json&tmX=${tmX}&tmY=${tmY}&ver=1.1`;
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.response && data.response.body && data.response.body.items.length > 0) {
+                    // 가장 가까운 측정소 이름 추출
+                    const stationName = data.response.body.items[0].stationName;
+                    document.getElementById('primary-detail').innerText = `'${stationName}' 측정소 확인 완료!`;
+                    // 대기질 데이터 호출
+                    getAirQualityData(stationName); 
+                } else {
+                    throw new Error("측정소 없음");
+                }
+            } catch (error) {
+                document.getElementById('icon').innerText = '😥';
+                document.getElementById('message').innerText = '측정소 찾기 실패';
+                document.getElementById('primary-detail').innerText = '근처 측정소를 찾을 수 없습니다.';
+            }
+        }
 
-  const tipMap = {
-    good:    '<strong>최적 조건 🌿</strong> 장거리, 인터벌 훈련 모두 OK. 수분 보충만 잘 해주세요.',
-    normal:  '<strong>가벼운 러닝 권장 🌤</strong> 호흡기 질환자나 어린이·노인은 주의가 필요합니다. 격렬한 훈련은 자제하세요.',
-    bad:     '<strong>실외 자제 ⚠️</strong> KF80 이상 마스크 착용 필수. 고강도 훈련은 실내 트레드밀로 대체하는 것을 권장합니다.',
-    verybad: '<strong>외출 금지 수준 🔴</strong> 실외 운동은 건강에 매우 해롭습니다. 창문을 닫고 공기청정기를 가동하세요.',
-  };
+        // 1.5단계: 위경도를 TM 좌표로 변환 (카카오 API)
+        async function convertToTM(lat, lng) {
+            const url = `https://dapi.kakao.com/v2/local/geo/transcoord.json?x=${lng}&y=${lat}&input_coord=WGS84&output_coord=TM`;
+            
+            try {
+                const response = await fetch(url, { 
+                    headers: { "Authorization": `KakaoAK ${KAKAO_REST_API_KEY}` } 
+                });
+                const data = await response.json();
+                
+                if (data.documents && data.documents.length > 0) {
+                    const tmX = data.documents[0].x;
+                    const tmY = data.documents[0].y;
+                    document.getElementById('primary-detail').innerText = '가까운 측정소 찾는 중...';
+                    // 변환된 좌표로 측정소 찾기
+                    getNearestStation(tmX, tmY); 
+                } else {
+                    throw new Error("변환 실패");
+                }
+            } catch (error) {
+                document.getElementById('icon').innerText = '🔌';
+                document.getElementById('message').innerText = '좌표 변환 실패';
+                document.getElementById('primary-detail').innerText = '카카오 API 호출에 실패했습니다.';
+            }
+        }
 
-  const gradeLabel = { good:'좋음', normal:'보통', bad:'나쁨', verybad:'매우나쁨' };
-  const gradeClass = { good:'grade-good', normal:'grade-normal', bad:'grade-bad', verybad:'grade-verybad' };
+        // 1단계: 내 위치(GPS) 가져오기
+        function initApp() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        document.getElementById('primary-detail').innerText = '좌표 변환 중...';
+                        // 위경도를 TM좌표로 변환 시작
+                        convertToTM(lat, lng);
+                    },
+                    (error) => {
+                        document.getElementById('icon').innerText = '🚫';
+                        document.getElementById('message').innerText = 'GPS 권한 필요';
+                        document.getElementById('primary-detail').innerText = '브라우저의 위치 정보(GPS) 접근을 허용해 주세요.';
+                    }
+                );
+            } else {
+                document.getElementById('icon').innerText = '📱';
+                document.getElementById('message').innerText = 'GPS 미지원';
+                document.getElementById('primary-detail').innerText = 'GPS를 지원하지 않는 기기/브라우저입니다.';
+            }
+        }
 
-  const v = verdictMap[grade];
-  const banner = document.getElementById('verdictBanner');
-  banner.className = 'verdict-banner ' + v.cls;
-  document.getElementById('verdictEmoji').textContent = v.emoji;
-  document.getElementById('verdictTitle').textContent = v.title;
-  document.getElementById('verdictDesc').textContent = v.desc;
-
-  // PM10
-  const pm10G = pm10 <= 30 ? 'good' : pm10 <= 80 ? 'normal' : pm10 <= 150 ? 'bad' : 'verybad';
-  document.getElementById('pm10Val').innerHTML = `${pm10}<span class="metric-unit">µg/m³</span>`;
-  document.getElementById('pm10Grade').textContent = gradeLabel[pm10G];
-  document.getElementById('pm10Grade').className = 'metric-grade ' + gradeClass[pm10G];
-  const pm10Colors = { good:'#00ff87', normal:'#64c8ff', bad:'#ff6b00', verybad:'#ff1744' };
-  document.getElementById('pm10Gauge').style.cssText = `width:${Math.min(pm10/200*100,100)}%; background:${pm10Colors[pm10G]}`;
-
-  // PM2.5
-  const pm25G = pm25 <= 15 ? 'good' : pm25 <= 35 ? 'normal' : pm25 <= 75 ? 'bad' : 'verybad';
-  document.getElementById('pm25Val').innerHTML = `${pm25}<span class="metric-unit">µg/m³</span>`;
-  document.getElementById('pm25Grade').textContent = gradeLabel[pm25G];
-  document.getElementById('pm25Grade').className = 'metric-grade ' + gradeClass[pm25G];
-  const pm25Colors = { good:'#00ff87', normal:'#64c8ff', bad:'#ff6b00', verybad:'#ff1744' };
-  document.getElementById('pm25Gauge').style.cssText = `width:${Math.min(pm25/100*100,100)}%; background:${pm25Colors[pm25G]}`;
-
-  document.getElementById('stationNameDisp').textContent = `📍 ${station} 측정소`;
-  document.getElementById('dataTime').textContent = time ? time.replace('T',' ') : '-';
-  document.getElementById('tipText').innerHTML = tipMap[grade];
-
-  document.getElementById('resultCard').style.display = 'block';
-  document.getElementById('resultCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
-
-function showError(msg) {
-  const box = document.getElementById('errorBox');
-  box.textContent = '⚠ ' + msg;
-  box.style.display = 'block';
-}
-
-function hideError() {
-  document.getElementById('errorBox').style.display = 'none';
-}
-
-// 수원 기본 선택
-window.onload = () => {
-  document.getElementById('sidoSelect').value = '경기';
-  updateStations();
-  document.getElementById('stationSelect').value = '수원';
-  updateCheckBtn();
-};
-</script>
+        // 웹페이지가 열리면 바로 실행
+        window.onload = initApp;
+    </script>
 </body>
 </html>
