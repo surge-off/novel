@@ -1,300 +1,292 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>러닝 신호등 🏃‍♂️</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        body {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
-            transition: background-color 0.5s ease;
-            background-color: #1e293b;
-            color: white;
-            text-align: center;
-        }
-        
-        /* 2단계 드롭다운 컨테이너 */
-        .select-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-            z-index: 10;
-        }
-        select {
-            padding: 10px 15px;
-            font-size: 1.1rem;
-            border-radius: 8px;
-            border: 2px solid rgba(255, 255, 255, 0.4);
-            background-color: rgba(0, 0, 0, 0.3);
-            color: white;
-            font-family: inherit;
-            font-weight: bold;
-            outline: none;
-            cursor: pointer;
-            text-align: center;
-        }
-        select option {
-            background-color: #1e293b;
-            color: white;
-        }
-        select:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>공기질</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500&family=IBM+Plex+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        #icon {
-            font-size: 100px;
-            margin-bottom: 20px;
-            animation: bounce 2s infinite;
-        }
-        #message {
-            font-size: 2.5rem;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        #primary-detail {
-            font-size: 1.3rem;
-            font-weight: bold;
-            margin-bottom: 15px;
-        }
-        .data-box {
-            background: rgba(0, 0, 0, 0.2);
-            padding: 15px 25px;
-            border-radius: 12px;
-            margin-bottom: 30px;
-            display: none;
-        }
-        .data-row {
-            font-size: 1rem;
-            margin: 5px 0;
-            opacity: 0.9;
-            display: flex;
-            justify-content: space-between;
-            gap: 20px;
-        }
-        #location-info {
-            font-size: 0.9rem;
-            opacity: 0.7;
-        }
-        @keyframes bounce {
-            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-            40% { transform: translateY(-20px); }
-            60% { transform: translateY(-10px); }
-        }
-    </style>
+:root {
+  --bg:    #f7f7f5;
+  --white: #ffffff;
+  --line:  #e8e8e4;
+  --text:  #1a1a18;
+  --mid:   #888880;
+  --dim:   #b8b8b0;
+
+  --good:  #2a9d6e;
+  --norm:  #3b82c4;
+  --bad:   #d4870a;
+  --vbad:  #c93b3b;
+
+  --r: 14px;
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'Noto Sans KR', sans-serif;
+}
+
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+body { display: flex; justify-content: center; padding-bottom: 48px; }
+
+.wrap { width: 100%; max-width: 420px; padding: 0 20px; display: flex; flex-direction: column; }
+
+/* 상단 */
+.top { padding: 36px 0 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+.top-left { display: flex; flex-direction: column; gap: 4px; }
+.top-label { font-family: var(--mono); font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: var(--dim); }
+.top-city  { font-size: 18px; font-weight: 500; letter-spacing: -.02em; }
+.top-right { display: flex; align-items: center; gap: 10px; padding-bottom: 2px; }
+.top-time  { font-family: var(--mono); font-size: 11px; color: var(--dim); }
+.refresh-btn { background: none; border: 1px solid var(--line); border-radius: 8px; width: 34px; height: 34px; cursor: pointer; font-size: 15px; color: var(--mid); display: flex; align-items: center; justify-content: center; transition: border-color .15s, color .15s; }
+.refresh-btn:hover { border-color: var(--text); color: var(--text); }
+.refresh-btn.spinning { animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* 히어로 */
+.hero { background: var(--white); border: 1px solid var(--line); border-radius: var(--r); padding: 28px 24px 24px; display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 8px; position: relative; overflow: hidden; }
+.hero-bar { position: absolute; top: 0; left: 0; right: 0; height: 3px; transition: background .4s; }
+.hero-left { display: flex; flex-direction: column; gap: 6px; }
+.hero-tag  { font-family: var(--mono); font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: var(--dim); }
+.hero-num  { font-family: var(--mono); font-size: 64px; font-weight: 300; line-height: 1; letter-spacing: -.03em; }
+.hero-unit { font-family: var(--mono); font-size: 11px; color: var(--dim); }
+.hero-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; padding-bottom: 4px; }
+.grade-pill { font-size: 13px; font-weight: 500; padding: 5px 14px; border-radius: 100px; }
+.hero-desc  { font-size: 12px; color: var(--mid); text-align: right; line-height: 1.4; max-width: 110px; }
+
+/* 등급 색 */
+.g-good { background: #edf7f2; color: var(--good); }
+.g-norm { background: #eaf1fb; color: var(--norm); }
+.g-bad  { background: #fdf3e3; color: var(--bad);  }
+.g-vbad { background: #fceaea; color: var(--vbad); }
+.b-good { background: var(--good); }
+.b-norm { background: var(--norm); }
+.b-bad  { background: var(--bad);  }
+.b-vbad { background: var(--vbad); }
+
+/* 2x2 그리드 */
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.card { background: var(--white); border: 1px solid var(--line); border-radius: var(--r); padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 12px; }
+.card-head { display: flex; justify-content: space-between; align-items: center; }
+.card-name  { font-size: 11px; color: var(--mid); }
+.card-badge { font-family: var(--mono); font-size: 9px; letter-spacing: .08em; text-transform: uppercase; padding: 2px 7px; border-radius: 4px; }
+.card-val   { font-family: var(--mono); font-size: 28px; font-weight: 300; line-height: 1; letter-spacing: -.02em; }
+.card-val sup { font-size: 11px; color: var(--dim); font-weight: 400; letter-spacing: 0; vertical-align: baseline; margin-left: 2px; }
+.bar-bg   { height: 2px; background: var(--line); border-radius: 2px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 2px; width: 0%; transition: width .9s cubic-bezier(.4,0,.2,1); }
+
+/* 하단 3열 */
+.row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.mini { background: var(--white); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 12px 12px; display: flex; flex-direction: column; gap: 5px; }
+.mini-label { font-family: var(--mono); font-size: 9px; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); }
+.mini-val   { font-family: var(--mono); font-size: 16px; }
+.mini-unit  { font-family: var(--mono); font-size: 9px; color: var(--dim); }
+
+/* 오버레이 */
+.overlay { margin-top: 60px; display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; }
+.spinner { width: 22px; height: 22px; border: 1.5px solid var(--line); border-top-color: var(--text); border-radius: 50%; animation: spin .7s linear infinite; }
+.overlay-msg { font-size: 13px; color: var(--mid); line-height: 1.7; }
+
+.hidden { display: none !important; }
+</style>
 </head>
 <body>
+<div class="wrap">
 
-    <div class="select-group">
-        <select id="sido-select">
-            <option value="서울">서울</option>
-            <option value="부산">부산</option>
-            <option value="대구">대구</option>
-            <option value="인천">인천</option>
-            <option value="광주">광주</option>
-            <option value="대전">대전</option>
-            <option value="울산">울산</option>
-            <option value="경기" selected>경기</option>
-            <option value="강원">강원</option>
-            <option value="충북">충북</option>
-            <option value="충남">충남</option>
-            <option value="전북">전북</option>
-            <option value="전남">전남</option>
-            <option value="경북">경북</option>
-            <option value="경남">경남</option>
-            <option value="제주">제주</option>
-            <option value="세종">세종</option>
-        </select>
-        <select id="station-select">
-            <option value="">측정소 불러오는 중...</option>
-        </select>
+  <div class="top">
+    <div class="top-left">
+      <span class="top-label">현재 위치</span>
+      <span class="top-city" id="cityName">확인 중…</span>
+    </div>
+    <div class="top-right">
+      <span class="top-time" id="updateTime"></span>
+      <button class="refresh-btn" id="refreshBtn" onclick="loadData()">↻</button>
+    </div>
+  </div>
+
+  <div class="overlay" id="loadingState">
+    <div class="spinner"></div>
+    <p class="overlay-msg" id="loadMsg">대기질 정보를<br>불러오는 중입니다</p>
+  </div>
+
+  <div id="mainUI" class="hidden">
+    <div class="hero">
+      <div class="hero-bar" id="heroBar"></div>
+      <div class="hero-left">
+        <span class="hero-tag">PM10 · 미세먼지</span>
+        <div class="hero-num" id="heroPm10">--</div>
+        <div class="hero-unit">㎍/㎥</div>
+      </div>
+      <div class="hero-right">
+        <span class="grade-pill" id="heroGrade">--</span>
+        <span class="hero-desc" id="heroDesc"></span>
+      </div>
     </div>
 
-    <div id="icon">⏳</div>
-    <div id="message">대기질 분석 중...</div>
-    <div id="primary-detail">데이터를 불러오는 중입니다</div>
-    
-    <div class="data-box" id="data-box">
-        <div class="data-row">
-            <span>미세먼지 (PM10)</span>
-            <span id="val-pm10">-</span>
-        </div>
-        <div class="data-row">
-            <span>초미세먼지 (PM2.5)</span>
-            <span id="val-pm25">-</span>
-        </div>
-        <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.2); margin: 10px 0;">
-        <div class="data-row" style="font-size: 0.9rem; opacity: 0.8;">
-            <span>오존 (O3)</span>
-            <span id="val-o3">-</span>
-        </div>
-        <div class="data-row" style="font-size: 0.9rem; opacity: 0.8;">
-            <span>이산화질소 (NO2)</span>
-            <span id="val-no2">-</span>
-        </div>
+    <div class="grid">
+      <div class="card">
+        <div class="card-head"><span class="card-name">PM2.5 초미세먼지</span><span class="card-badge" id="badge-pm25"></span></div>
+        <div class="card-val" id="val-pm25">--<sup>㎍/㎥</sup></div>
+        <div class="bar-bg"><div class="bar-fill" id="bar-pm25"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-name">O₃ 오존</span><span class="card-badge" id="badge-o3"></span></div>
+        <div class="card-val" id="val-o3">--<sup>ppm</sup></div>
+        <div class="bar-bg"><div class="bar-fill" id="bar-o3"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-name">NO₂ 이산화질소</span><span class="card-badge" id="badge-no2"></span></div>
+        <div class="card-val" id="val-no2">--<sup>ppm</sup></div>
+        <div class="bar-bg"><div class="bar-fill" id="bar-no2"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><span class="card-name">SO₂ 아황산가스</span><span class="card-badge" id="badge-so2"></span></div>
+        <div class="card-val" id="val-so2">--<sup>ppm</sup></div>
+        <div class="bar-bg"><div class="bar-fill" id="bar-so2"></div></div>
+      </div>
     </div>
 
-    <div id="location-info"></div>
+    <div class="row3">
+      <div class="mini"><span class="mini-label">CO</span><span class="mini-val" id="val-co">--</span><span class="mini-unit">ppm</span></div>
+      <div class="mini"><span class="mini-label">통합 CAI</span><span class="mini-val" id="val-cai">--</span><span class="mini-unit">지수</span></div>
+      <div class="mini"><span class="mini-label">측정소</span><span class="mini-val" style="font-size:12px;line-height:1.3" id="val-station">--</span><span class="mini-unit">&nbsp;</span></div>
+    </div>
+  </div>
 
-    <script>
-        const API_KEY = 'd52470c737c315329b21e95427f7bcb11e1750f4f7e64cf7671e84b14ff59cc7'; 
-        let currentSidoData = []; // 현재 선택된 시/도의 모든 측정소 데이터를 저장할 배열
+</div>
+<script>
+// ★ API 키 입력 ★
+const CONFIG = {
+  airKey:   'd52470c737c315329b21e95427f7bcb11e1750f4f7e64cf7671e84b14ff59cc7',
+  kakaoKey: '8811331ec6b369285c4409ab6f200d2f',
+};
 
-        // UI 업데이트 함수
-        function updateUI(pm10, pm25, o3, no2, stationName, sidoName) {
-            const body = document.body;
-            const icon = document.getElementById('icon');
-            const message = document.getElementById('message');
-            const primaryDetail = document.getElementById('primary-detail');
-            
-            document.getElementById('data-box').style.display = 'block';
-            document.getElementById('val-pm10').innerText = isNaN(pm10) ? '-' : `${pm10} µg/m³`;
-            document.getElementById('val-pm25').innerText = isNaN(pm25) ? '-' : `${pm25} µg/m³`;
-            document.getElementById('val-o3').innerText = o3 === '-' ? '-' : `${o3} ppm`;
-            document.getElementById('val-no2').innerText = no2 === '-' ? '-' : `${no2} ppm`;
-            
-            document.getElementById('location-info').innerText = `📍 ${sidoName} ${stationName} 측정소 기준`;
+const GRADES = {
+  pm10: [{max:30,g:'good',l:'좋음'},{max:80,g:'norm',l:'보통'},{max:150,g:'bad',l:'나쁨'},{max:9e9,g:'vbad',l:'매우나쁨'}],
+  pm25: [{max:15,g:'good',l:'좋음'},{max:35,g:'norm',l:'보통'},{max:75, g:'bad',l:'나쁨'},{max:9e9,g:'vbad',l:'매우나쁨'}],
+  o3:   [{max:.03,g:'good',l:'좋음'},{max:.09,g:'norm',l:'보통'},{max:.15,g:'bad',l:'나쁨'},{max:9e9,g:'vbad',l:'매우나쁨'}],
+  no2:  [{max:.03,g:'good',l:'좋음'},{max:.06,g:'norm',l:'보통'},{max:.20,g:'bad',l:'나쁨'},{max:9e9,g:'vbad',l:'매우나쁨'}],
+  so2:  [{max:.02,g:'good',l:'좋음'},{max:.05,g:'norm',l:'보통'},{max:.15,g:'bad',l:'나쁨'},{max:9e9,g:'vbad',l:'매우나쁨'}],
+};
+const BAR_MAX = {pm10:150,pm25:75,o3:.15,no2:.20,so2:.15};
+const DESC = {good:'활동하기 좋은 날씨예요',norm:'일반 활동에 지장 없음',bad:'마스크 착용 권장',vbad:'실외 활동 자제'};
 
-            let status = 0; 
-            
-            if (pm10 > 150 || pm25 > 75) status = 3;
-            else if (pm10 > 80 || pm25 > 35) status = 2;
-            else if (pm10 > 30 || pm25 > 15) status = 1;
+const gt = (key,val) => { const t=GRADES[key]||GRADES.pm10; return t.find(r=>val<=r.max)||t[t.length-1]; };
+const $  = id => document.getElementById(id);
+const show = id => $(id).classList.remove('hidden');
+const hide = id => $(id).classList.add('hidden');
 
-            if (isNaN(pm10) && isNaN(pm25)) {
-                // 데이터가 둘 다 없는 경우
-                body.style.backgroundColor = '#64748b'; 
-                icon.innerText = '🛠️';
-                message.innerText = '측정소 점검 중';
-                primaryDetail.innerText = '현재 수치 업데이트가 지연되고 있습니다.';
-            } else if (status === 0) {
-                body.style.backgroundColor = '#3b82f6'; 
-                icon.innerText = '🤩';
-                message.innerText = '최상의 컨디션!';
-                primaryDetail.innerText = '당장 러닝화를 신으세요';
-            } else if (status === 1) {
-                body.style.backgroundColor = '#22c55e'; 
-                icon.innerText = '🏃‍♂️';
-                message.innerText = '가볍게 뛰기 좋아요';
-                primaryDetail.innerText = '야외 훈련하기 무난한 공기입니다';
-            } else if (status === 2) {
-                body.style.backgroundColor = '#f97316'; 
-                icon.innerText = '😷';
-                message.innerText = '마스크 챙기셨나요?';
-                primaryDetail.innerText = '호흡기가 예민하다면 실내 훈련 권장';
-            } else {
-                body.style.backgroundColor = '#ef4444'; 
-                icon.innerText = '🛑';
-                message.innerText = '절대 나가지 마세요!';
-                primaryDetail.innerText = '오늘은 폼롤러와 실내 코어 운동의 날';
-            }
-        }
+async function loadData() {
+  hide('mainUI'); show('loadingState');
+  $('loadMsg').innerHTML = '대기질 정보를<br>불러오는 중입니다';
+  $('refreshBtn').classList.add('spinning');
 
-      // 시/도 단위로 모든 측정소 데이터를 가져오는 함수
-        async function fetchStationsBySido(sido) {
-            document.getElementById('icon').innerText = '⏳';
-            document.getElementById('message').innerText = `${sido} 대기질 분석 중...`;
-            document.getElementById('primary-detail').innerText = '데이터를 불러오는 중입니다';
-            document.getElementById('data-box').style.display = 'none';
-            document.getElementById('location-info').innerText = '';
-            
-            const stationSelect = document.getElementById('station-select');
-            stationSelect.innerHTML = '<option value="">불러오는 중...</option>';
-            stationSelect.disabled = true;
+  try {
+    const c = await getCoords();
+    const {city, station} = await resolveLocation(c.lat, c.lng);
+    $('cityName').textContent = city;
+    $('val-station').textContent = station;
+    const data = await fetchAir(station);
+    render(data);
+  } catch(e) {
+    $('loadMsg').innerHTML = `오류<br><span style="font-size:11px;color:var(--dim)">${e.message}</span>`;
+  } finally {
+    $('refreshBtn').classList.remove('spinning');
+  }
+}
 
-            // 1. 원래 요청하려던 공공데이터 API 주소
-            const targetUrl = `https://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getCTprvnRltmMesureDnsty?serviceKey=${API_KEY}&returnType=json&numOfRows=200&pageNo=1&sidoName=${encodeURIComponent(sido)}&ver=1.3`;
-            
-            // 2. CORS 우회를 위한 프록시 주소 합성
-            const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+function getCoords() {
+  return new Promise((res,rej) => {
+    if (!navigator.geolocation) rej(new Error('Geolocation 미지원'));
+    navigator.geolocation.getCurrentPosition(
+      p => res({lat:p.coords.latitude, lng:p.coords.longitude}),
+      () => rej(new Error('위치 권한을 허용해주세요')),
+      {timeout:10000}
+    );
+  });
+}
 
-            try {
-                // targetUrl 대신 proxyUrl로 요청을 보냅니다!
-                const response = await fetch(proxyUrl);
-                const textData = await response.text(); 
+async function resolveLocation(lat,lng) {
+  let city = `${lat.toFixed(2)}, ${lng.toFixed(2)}`;
+  try {
+    const r = await fetch(`https://dapi.kakao.com/v2/local/geo/coord2regioncode.json?x=${lng}&y=${lat}`,
+      {headers:{Authorization:`KakaoAK ${CONFIG.kakaoKey}`}});
+    const j = await r.json();
+    const reg = j.documents?.find(d=>d.region_type==='B');
+    if (reg) city = `${reg.region_1depth_name} ${reg.region_2depth_name}`;
+  } catch(_) {}
 
-                if (textData.startsWith('<')) {
-                    console.error("❌ API 서버가 에러를 반환했습니다 (XML):", textData);
-                    throw new Error("API 키 오류 또는 공공데이터 서버 에러입니다.");
-                }
+  const {tmX,tmY} = wgs84ToTM(lat,lng);
+  const r = await fetch(
+    `https://apis.data.go.kr/B552584/MsrstnInfoInqireSvc/getNearbyMsrstnList`+
+    `?serviceKey=${encodeURIComponent(CONFIG.airKey)}&returnType=json&tmX=${tmX}&tmY=${tmY}&ver=1.1`
+  );
+  const j = await r.json();
+  const items = j?.response?.body?.items;
+  if (!items?.length) throw new Error('근처 측정소를 찾을 수 없습니다');
+  return {city, station: items[0].stationName};
+}
 
-                const data = JSON.parse(textData); 
+async function fetchAir(station) {
+  const r = await fetch(
+    `https://apis.data.go.kr/B552584/ArpltnInforInqireSvc/getMsrstnAcctoRltmMesureDnsty`+
+    `?serviceKey=${encodeURIComponent(CONFIG.airKey)}&returnType=json&numOfRows=1&pageNo=1`+
+    `&stationName=${encodeURIComponent(station)}&dataTerm=DAILY&ver=1.4`
+  );
+  const j = await r.json();
+  const items = j?.response?.body?.items;
+  if (!items?.length) throw new Error('대기질 데이터가 없습니다');
+  return items[0];
+}
 
-                if (data.response && data.response.body && data.response.body.items && data.response.body.items.length > 0) {
-                    currentSidoData = data.response.body.items;
-                    currentSidoData.sort((a, b) => a.stationName.localeCompare(b.stationName));
-                    
-                    stationSelect.innerHTML = '';
-                    currentSidoData.forEach(station => {
-                        const option = document.createElement('option');
-                        option.value = station.stationName;
-                        option.innerText = station.stationName;
-                        stationSelect.appendChild(option);
-                    });
-                    
-                    stationSelect.disabled = false;
+function render(d) {
+  const now = new Date();
+  $('updateTime').textContent = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
 
-                    let defaultStation = currentSidoData.find(s => s.stationName === '인계동');
-                    if (!defaultStation || sido !== '경기') {
-                        defaultStation = currentSidoData[0];
-                    }
-                    
-                    stationSelect.value = defaultStation.stationName;
-                    displaySelectedStationData();
+  const pm10 = parseFloat(d.pm10Value)||0;
+  const g = gt('pm10', pm10);
+  $('heroPm10').textContent   = pm10||'--';
+  $('heroGrade').textContent  = g.l;
+  $('heroGrade').className    = `grade-pill g-${g.g}`;
+  $('heroDesc').textContent   = DESC[g.g];
+  $('heroBar').className      = `hero-bar b-${g.g}`;
 
-                } else {
-                    throw new Error("데이터 배열이 비어있습니다.");
-                }
-            } catch (error) {
-                console.error("❌ API 호출 에러 상세:", error);
-                document.getElementById('icon').innerText = '🔌';
-                document.getElementById('message').innerText = '연결 실패';
-                document.getElementById('primary-detail').innerText = 'API 키를 다시 확인해주세요! (F12 콘솔 확인)';
-            }
-        }
-        // 선택된 측정소의 데이터를 찾아서 화면에 그려주는 함수 (API 재호출 안 함)
-        function displaySelectedStationData() {
-            const selectedStationName = document.getElementById('station-select').value;
-            const selectedSidoName = document.getElementById('sido-select').value;
-            
-            // 미리 저장해둔 currentSidoData 배열에서 측정소 정보 찾기
-            const stationData = currentSidoData.find(s => s.stationName === selectedStationName);
-            
-            if (stationData) {
-                const pm10 = parseInt(stationData.pm10Value);
-                const pm25 = parseInt(stationData.pm25Value);
-                const o3 = stationData.o3Value || '-';
-                const no2 = stationData.no2Value || '-';
-                
-                updateUI(pm10, pm25, o3, no2, selectedStationName, selectedSidoName);
-            }
-        }
+  setCard('pm25', parseFloat(d.pm25Value)||0, 'pm25');
+  setCard('o3',   parseFloat(d.o3Value)||0,   'o3');
+  setCard('no2',  parseFloat(d.no2Value)||0,  'no2');
+  setCard('so2',  parseFloat(d.so2Value)||0,  'so2');
 
-        // 이벤트 리스너: 시/도 변경 시 API 새로 호출
-        document.getElementById('sido-select').addEventListener('change', (e) => {
-            fetchStationsBySido(e.target.value);
-        });
+  $('val-co').textContent  = d.coValue  || '--';
+  $('val-cai').textContent = d.khaiValue|| '--';
 
-        // 이벤트 리스너: 측정소 변경 시 화면만 즉시 업데이트 (API 호출 X)
-        document.getElementById('station-select').addEventListener('change', () => {
-            displaySelectedStationData();
-        });
+  hide('loadingState'); show('mainUI');
+}
 
-        // 초기 로딩 시 실행 (기본값: 경기)
-        window.onload = () => {
-            const initialSido = document.getElementById('sido-select').value;
-            fetchStationsBySido(initialSido); 
-        };
-    </script>
+function setCard(id, val, key) {
+  const g = gt(key, val);
+  const pct = Math.min((val/(BAR_MAX[key]||1))*100, 100);
+  const unit = (key==='pm25'||key==='pm10') ? '㎍/㎥' : 'ppm';
+  $(`val-${id}`).innerHTML   = `${val||'--'}<sup>${unit}</sup>`;
+  $(`badge-${id}`).textContent = g.l;
+  $(`badge-${id}`).className = `card-badge g-${g.g}`;
+  setTimeout(()=>{ $(`bar-${id}`).className=`bar-fill b-${g.g}`; $(`bar-${id}`).style.width=pct+'%'; }, 150);
+}
+
+function wgs84ToTM(lat,lng) {
+  const a=6378137,f=1/298.257222101,e2=2*f-f*f;
+  const lat0=38*Math.PI/180,lng0=127*Math.PI/180,FN=600000,FE=200000;
+  const lr=lat*Math.PI/180,rr=lng*Math.PI/180;
+  const N=a/Math.sqrt(1-e2*Math.sin(lr)**2),T=Math.tan(lr)**2,C=e2/(1-e2)*Math.cos(lr)**2;
+  const A=(rr-lng0)*Math.cos(lr);
+  function M(p){const e4=e2*e2,e6=e4*e2;return a*((1-e2/4-3*e4/64-5*e6/256)*p-(3*e2/8+3*e4/32+45*e6/1024)*Math.sin(2*p)+(15*e4/256+45*e6/1024)*Math.sin(4*p)-(35*e6/3072)*Math.sin(6*p));}
+  const x=N*(A+(1-T+C)*A**3/6+(5-18*T+T**2+72*C)*A**5/120)+FE;
+  const y=M(lr)-M(lat0)+N*Math.tan(lr)*(A**2/2+(5-T+9*C+4*C**2)*A**4/24)+FN;
+  return {tmX:Math.round(x),tmY:Math.round(y)};
+}
+
+loadData();
+</script>
 </body>
 </html>
